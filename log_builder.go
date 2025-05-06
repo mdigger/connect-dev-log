@@ -99,12 +99,12 @@ func (lb *logBuilder) writeContextData(ctx context.Context, extractor func(conte
 
 // Остальные методы остаются без изменений
 func (lb *logBuilder) writeMainHeader(title string) {
-	padding := max(0, headerWidth-len(title)-4)
+	padding := max(0, headerWidth-len(title)-6)
 	lb.buf.WriteString("== " + title + " " + strings.Repeat("=", padding) + "==\n")
 }
 
 func (lb *logBuilder) writeSubheader(title string) {
-	padding := max(0, headerWidth-len(title)-4)
+	padding := max(0, headerWidth-len(title)-6)
 	lb.buf.WriteString("-- " + title + " " + strings.Repeat("-", padding) + "--\n")
 }
 
