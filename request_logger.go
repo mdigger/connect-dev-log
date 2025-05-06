@@ -2,6 +2,7 @@ package devlog
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"connectrpc.com/connect"
@@ -14,8 +15,8 @@ func (i *loggingInterceptor) logRequest(ctx context.Context, lb *logBuilder, req
 	lb.writeKeyValue("Client", req.Peer().Addr)
 	lb.flush()
 
-	lb.writeHeaders(req.Header())
 	lb.writeContextData(ctx, i.config.ContextExtractor)
+	lb.writeHeaders(req.Header())
 
 	if req.Any() != nil {
 		lb.writeSubheader("Request Body")
@@ -34,19 +35,22 @@ func (i *loggingInterceptor) logResponse(ctx context.Context, lb *logBuilder, re
 	lb.writeKeyValue("Duration", duration.String())
 
 	if err != nil {
-		lb.writeKeyValue("Error", err.Error())
 		if connectErr, ok := err.(*connect.Error); ok {
-			lb.writeKeyValue("ErrorCode", connectErr.Code().String())
+			lb.writeKeyValue("Error", connectErr.Message())
+			lb.writeKeyValue("Code", connectErr.Code().String())
+		} else {
+			lb.writeKeyValue("Error", err.Error())
 		}
 	}
 	lb.flush()
 
-	if resp == nil {
+	lb.writeContextData(ctx, i.config.ContextExtractor)
+
+	if reflect.ValueOf(resp).IsNil() {
 		return
 	}
 
 	lb.writeHeaders(resp.Header())
-	lb.writeContextData(ctx, i.config.ContextExtractor)
 
 	if resp.Any() != nil {
 		lb.writeSubheader("Response Body")

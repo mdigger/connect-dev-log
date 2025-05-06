@@ -25,8 +25,8 @@ func (i *loggingInterceptor) logStreamStart(ctx context.Context, lb *logBuilder,
 	lb.writeKeyValue("Client", conn.Peer().Addr)
 	lb.flush()
 
-	lb.writeHeaders(conn.RequestHeader())
 	lb.writeContextData(ctx, i.config.ContextExtractor)
+	lb.writeHeaders(conn.RequestHeader())
 }
 
 func (i *loggingInterceptor) logStreamEnd(ctx context.Context, lb *logBuilder, conn *loggingHandlerStreamConn, err error) {
@@ -39,9 +39,11 @@ func (i *loggingInterceptor) logStreamEnd(ctx context.Context, lb *logBuilder, c
 	lb.writeContextData(ctx, i.config.ContextExtractor)
 
 	if err != nil {
-		lb.writeKeyValue("Error", err.Error())
 		if connectErr, ok := err.(*connect.Error); ok {
-			lb.writeKeyValue("ErrorCode", connectErr.Code().String())
+			lb.writeKeyValue("Error", connectErr.Message())
+			lb.writeKeyValue("Code", connectErr.Code().String())
+		} else {
+			lb.writeKeyValue("Error", err.Error())
 		}
 	}
 }
