@@ -31,6 +31,8 @@ func (s *streamingHandlerConn) Send(msg any) error {
 		buf.WriteByte(' ')
 		buf.WriteString(s.Spec().StreamType.String())
 		buf.WriteByte(' ')
+		buf.WriteString(s.Peer().Protocol)
+		buf.WriteByte(' ')
 		buf.WriteString(s.Peer().Addr)
 
 		if err != nil {
@@ -63,6 +65,8 @@ func (s *streamingHandlerConn) Receive(msg any) error {
 		buf.WriteString(s.Spec().Procedure)
 		buf.WriteByte(' ')
 		buf.WriteString(s.Spec().StreamType.String())
+		buf.WriteByte(' ')
+		buf.WriteString(s.Peer().Protocol)
 		buf.WriteByte(' ')
 		buf.WriteString(s.Peer().Addr)
 

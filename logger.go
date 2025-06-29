@@ -61,6 +61,8 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		buf.WriteByte(' ')
 		buf.WriteString(req.Spec().StreamType.String())
 		buf.WriteByte(' ')
+		buf.WriteString(req.Peer().Protocol)
+		buf.WriteByte(' ')
 		buf.WriteString(req.Peer().Addr)
 
 		if l.showHeaders {
@@ -104,6 +106,8 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		buf.WriteString(conn.Spec().Procedure)
 		buf.WriteByte(' ')
 		buf.WriteString(conn.Spec().StreamType.String())
+		buf.WriteByte(' ')
+		buf.WriteString(conn.Peer().Protocol)
 		buf.WriteByte(' ')
 		buf.WriteString(conn.Peer().Addr)
 
