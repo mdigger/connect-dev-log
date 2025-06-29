@@ -1,36 +1,20 @@
-ConnectRPC Dev Logger
-=====================
+# devlog - ConnectRPC Call Logger
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/mdigger/connect-dev-log.svg)](https://pkg.go.dev/github.com/mdigger/connect-dev-log)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A high-performance logging interceptor for ConnectRPC with protocol-agnostic request/response logging, protobuf message formatting, and streaming support.
+A feature-rich RPC call logger for ConnectRPC with protocol-agnostic support and structured logging capabilities.
 
 ## Features
 
-- **Full ConnectRPC Interceptor Implementation**
-  - Supports both unary and streaming RPCs
-  - Works with gRPC, Connect, and gRPC-Web protocols
-
-- **Detailed Request/Response Logging**
-  - Structured logging with timestamps
-  - Protocol and stream type information
-  - Peer address and HTTP method logging
-
-- **Protobuf Message Formatting**
-  - Supports both Text and JSON formats
-  - Configurable indentation and formatting
-  - Automatic error handling
-
-- **Efficient Design**
-  - Zero-allocation string building
-  - Thread-safe with sync.Pool for buffers
-  - Minimal performance overhead
-
-- **Flexible Configuration**
-  - Customizable timestamp format
-  - Optional header/metadata logging
-  - Extensible formatter interface
+- **Protocol Support**: Works with gRPC, Connect, and gRPC-Web protocols
+- **Structured Logging**: Clear formatting for requests, responses, and errors
+- **Protobuf Integration**: Built-in support for Protocol Buffer message formatting
+- **Header/Metadata Logging**: Optional logging of request/response headers and metadata
+- **Error Diagnostics**: Detailed error information including ConnectRPC error codes
+- **Streaming Support**: Tracks bidirectional streaming messages with counters
+- **Thread-Safe**: Safe for concurrent use across goroutines
+- **Customizable**: Configurable timestamp formats, header visibility, and message formatting
 
 ## Installation
 
@@ -45,93 +29,68 @@ go get github.com/mdigger/connect-dev-log
 ```go
 import (
 	"os"
-	"github.com/mdigger/connect-dev-log"
+	"connectrpc.com/connect"
+	devlog "github.com/mdigger/connect-dev-log"
 )
 
-// Create logger with default settings (json format)
-logger := devlog.New(os.Stdout)
-
-// Use with Connect client
-client := pingv1connect.NewPingServiceClient(
-	http.DefaultClient,
-	"http://localhost:8080",
-	connect.WithInterceptors(logger),
-)
-
-// Or with handler
-mux := http.NewServeMux()
-mux.Handle(pingv1connect.NewPingServiceHandler(
-	&pingServer{},
-	connect.WithInterceptors(logger),
-))
-```
-
-### Advanced Configuration
-
-```go
-// JSON format with custom options
-logger := devlog.New(os.Stdout,
-	devlog.WithHeaders(true),
-	devlog.WithTimeFormat(time.DateTime),
-	devlog.WithFormatter(protojson.MarshalOptions{
-		Indent:          "  ",
-		UseProtoNames:   true,
-		EmitUnpopulated: true,
-	}),
-)
-
-// Or with text format
-logger := devlog.New(os.Stdout,
-	devlog.WithFormatter(prototext.MarshalOptions{
-		Indent:    "    ",
-		Multiline: true,
-	}),
-)
-```
-
-### Custom Formatters
-
-Implement the ProtoFormatter interface for custom formatting:
-
-```go
-type CompactFormatter struct{}
-
-func (f CompactFormatter) Format(m proto.Message) string {
-	return proto.CompactTextString(m)
+func main() {
+	logger := devlog.New(os.Stdout)
+	client := connect.NewClient[YourRequest, YourResponse](
+		http.DefaultClient,
+		"http://localhost:8080",
+		connect.WithInterceptors(logger),
+	)
+	// Use client as normal...
 }
+```
 
-// Usage:
-logger := devlog.New(os.Stdout,
-	devlog.WithFormatter(CompactFormatter{}),
+### With Custom Options
+
+```go
+logger := devlog.New(
+	os.Stdout,
+	devlog.WithTimeFormat(time.DateTime),
+	devlog.WithHeaders(true),
 )
 ```
 
-## Example Output
-
-### Text Format
+### Sample Output
 
 ```
-[2025-07-27T14:23:45.123Z] /package.Service/Method from 127.0.0.1:12345
-  StreamType: Unary
-  HTTPMethod: POST
-  Request message:
-    field1: "value"
-    field2: 42
+[2023-11-15T14:23:45.123456Z] /package.Service/Method unary [::1]:54321
+  Request:
+    {"field":"value"}
+  Response:
+    {"result":"success"}
+  Completed in: 12.345ms
 ```
 
-### JSON Format
+## Configuration Options
 
-```
-[2023-11-15T14:23:45.123Z] /package.Service/Method from 127.0.0.1:12345
-  StreamType: Unary
-  HTTPMethod: POST
-  Request message:
-    {
-      "field1": "value",
-      "field2": 42
-    }
-```
+| Option | Description | Default |
+|--------|-------------|---------|
+| `WithTimeFormat` | Sets timestamp format (empty string disables) | `time.RFC3339Nano` |
+| `WithHeaders` | Enables/disables header logging | `false` |
+| `WithFormatter` | Custom protobuf message formatter | `protojson.MarshalOptions` |
 
-## License
+## Streaming Support
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The logger provides detailed tracking for streaming RPCs, including:
+- Individual message logging for send/receive
+- Message counters
+- Stream duration metrics
+- Client/Server disconnect detection
+
+## Performance Considerations
+
+- Uses a buffer pool to minimize allocations
+- Thread-safe implementation with mutex protection
+
+## Limitations
+
+- Client-side streaming logging not yet implemented (`WrapStreamingClient`)
+- No built-in log level filtering (handle at writer level)
+
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

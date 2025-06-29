@@ -1,23 +1,28 @@
 package devlog
 
 import (
-	"strings"
+	"bytes"
+	"log/slog"
 	"sync"
 )
 
-var builderPool = sync.Pool{
-	New: func() any { return &strings.Builder{} },
+var bufferPool = sync.Pool{
+	New: func() any {
+		return bytes.NewBuffer(make([]byte, 0, 256)) // Начальный capacity
+	},
 }
 
-// getBuilder gets a strings.Builder from the shared pool.
-// The returned builder should be returned to the pool using putBuilder.
-func getBuilder() *strings.Builder {
-	return builderPool.Get().(*strings.Builder) //nolint:forcetypeassert,errcheck
+func getBuffer() *bytes.Buffer {
+	return bufferPool.Get().(*bytes.Buffer)
 }
 
-// putBuilder returns a strings.Builder to the shared pool after resetting it.
-// Always call this function when done with a builder obtained from getBuilder.
-func putBuilder(b *strings.Builder) {
-	b.Reset()
-	builderPool.Put(b)
+func putBuffer(buf *bytes.Buffer) {
+	if buf.Cap() > 4096 {
+		slog.Warn("buffer capacity", slog.Int("cap", buf.Cap()))
+		buf = nil
+	} else {
+		buf.Reset()
+	}
+
+	bufferPool.Put(buf)
 }

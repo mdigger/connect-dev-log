@@ -27,6 +27,6 @@ type ProtoFormatter interface {
 // WithFormatter configures JSON, Text or other proto formatting settings.
 func WithFormatter(opts ProtoFormatter) Option {
 	return func(l *Logger) {
-		l.protoFormatter = opts
+		l.protoFormatter = opts.Format
 	}
 }

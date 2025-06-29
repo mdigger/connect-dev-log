@@ -1,4 +1,4 @@
-// Package devlog provides a high-performance RPC call logger for ConnectRPC.
+// Package devlog provides a RPC call logger for ConnectRPC.
 //
 // Features:
 // - Protocol-agnostic logging (gRPC, Connect, gRPC-Web)
