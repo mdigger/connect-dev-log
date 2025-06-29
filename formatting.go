@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"log/slog"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -16,13 +18,18 @@ func writeTimestamp(w *bytes.Buffer, timestamp string) {
 	w.WriteString("] ")
 }
 
-func writeHeaders(w *bytes.Buffer, headers http.Header) {
+func writeHeaders(w *bytes.Buffer, headers http.Header, exclude map[string]bool) {
 	w.WriteString("\n  Headers:")
-	for k, v := range headers {
+	keys := slices.Sorted(maps.Keys(headers))
+	for _, k := range keys {
 		w.WriteString("\n    ")
 		w.WriteString(k)
 		w.WriteString(": ")
-		w.WriteString(strings.Join(v, ", "))
+		if exclude[k] {
+			w.WriteString("[** REDACTED **]")
+			continue
+		}
+		w.WriteString(strings.Join(headers.Values(k), ", "))
 	}
 }
 

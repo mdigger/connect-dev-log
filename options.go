@@ -13,9 +13,18 @@ func WithTimeFormat(format string) Option {
 }
 
 // WithHeaders enables/disables header logging (default: false).
-func WithHeaders(show bool) Option {
+func WithHeaders(show bool, exclude ...string) Option {
+	var ex map[string]bool
+	if show && len(exclude) > 0 {
+		ex = make(map[string]bool, len(exclude))
+		for _, k := range exclude {
+			ex[k] = true
+		}
+	}
+
 	return func(l *Logger) {
 		l.showHeaders = show
+		l.excludeHeaders = ex
 	}
 }
 

@@ -19,6 +19,7 @@ type Logger struct {
 	mu             sync.Mutex
 	timeFormat     string
 	showHeaders    bool
+	excludeHeaders map[string]bool
 	protoFormatter func(m proto.Message) string
 }
 
@@ -63,7 +64,7 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		buf.WriteString(req.Peer().Addr)
 
 		if l.showHeaders {
-			writeHeaders(buf, req.Header())
+			writeHeaders(buf, req.Header(), l.excludeHeaders)
 		}
 
 		if msg, ok := req.Any().(proto.Message); ok {
@@ -107,7 +108,7 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		buf.WriteString(conn.Peer().Addr)
 
 		if l.showHeaders {
-			writeHeaders(buf, conn.RequestHeader())
+			writeHeaders(buf, conn.RequestHeader(), l.excludeHeaders)
 		}
 
 		buf.WriteString("\n  Start streaming\n")
