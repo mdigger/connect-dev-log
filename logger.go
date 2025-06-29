@@ -18,11 +18,10 @@ type Logger struct {
 	timeFormat     string
 	showHeaders    bool
 	protoFormatter ProtoFormatter
-	pool           sync.Pool
 }
 
 // New creates a configured Logger instance.
-// Writer must be thread-safe if shared across goroutines.
+// The provided writer must be thread-safe if shared across goroutines.
 func New(w io.Writer, opts ...Option) *Logger {
 	l := &Logger{
 		writer:      w,
@@ -34,7 +33,6 @@ func New(w io.Writer, opts ...Option) *Logger {
 			UseProtoNames: true,
 		},
 	}
-	l.pool.New = func() any { return &strings.Builder{} }
 
 	for _, opt := range opts {
 		opt(l)
@@ -47,9 +45,8 @@ func New(w io.Writer, opts ...Option) *Logger {
 func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		start := time.Now()
-
-		buf := l.getBuilder()
-		defer l.putBuilder(buf)
+		buf := getBuilder()
+		defer putBuilder(buf)
 
 		l.logRequest(buf, req, start)
 		resp, err := next(ctx, req)
@@ -60,18 +57,8 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	}
 }
 
-// getBuilder gets a strings.Builder from pool.
-func (l *Logger) getBuilder() *strings.Builder {
-	return l.pool.Get().(*strings.Builder) //nolint:forcetypeassert,errcheck
-}
-
-// putBuilder returns builder to pool.
-func (l *Logger) putBuilder(b *strings.Builder) {
-	b.Reset()
-	l.pool.Put(b)
-}
-
-// writeLog safely outputs the log.
+// writeLog safely outputs the log content to the writer.
+// This method is thread-safe and can be called concurrently.
 func (l *Logger) writeLog(buf *strings.Builder) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

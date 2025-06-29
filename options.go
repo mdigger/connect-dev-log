@@ -1,8 +1,6 @@
 package devlog
 
-import (
-	"google.golang.org/protobuf/proto"
-)
+import "google.golang.org/protobuf/proto"
 
 // Option configures Logger behavior.
 type Option func(*Logger)
