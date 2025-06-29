@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,12 +13,10 @@ import (
 )
 
 // WrapStreamingClient implements connect.StreamingClientInterceptor.
-// It logs the start of client streaming calls and returns a wrapped connection.
 func (l *Logger) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
 	return func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
 		start := time.Now()
 		buf := getBuilder()
-
 		l.logStreamStart(buf, "Client stream started", spec, start)
 		l.writeLog(buf)
 		putBuilder(buf)
@@ -31,25 +30,39 @@ func (l *Logger) WrapStreamingClient(next connect.StreamingClientFunc) connect.S
 }
 
 // WrapStreamingHandler implements connect.StreamingHandlerInterceptor.
-// It logs the start and end of handler streaming calls including headers if enabled.
 func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
 	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
 		start := time.Now()
 		buf := getBuilder()
-		defer putBuilder(buf)
-
 		l.logStreamStart(buf, "Handler stream started", conn.Spec(), start)
 
 		if l.showHeaders {
 			l.logHeaders(buf, "Request headers", conn.RequestHeader())
 		}
 
-		err := next(ctx, &streamingHandlerConn{
+		// Write the start info immediately
+		l.writeLog(buf)
+		putBuilder(buf)
+
+		// Create new buffer for stream messages and end
+		streamBuf := getBuilder()
+		defer func() {
+			l.writeLog(streamBuf)
+			putBuilder(streamBuf)
+		}()
+
+		// Create the wrapped connection
+		wrappedConn := &streamingHandlerConn{
 			StreamingHandlerConn: conn,
 			logger:               l,
-		})
-		l.logStreamEnd(buf, err, time.Since(start))
-		l.writeLog(buf)
+			buf:                  streamBuf,
+		}
+
+		// Execute the handler
+		err := next(ctx, wrappedConn)
+
+		// Log the stream end
+		l.logStreamEnd(streamBuf, err, time.Since(start))
 
 		return err
 	}
@@ -158,6 +171,7 @@ func (s *streamingClientConn) CloseResponse() error {
 type streamingHandlerConn struct {
 	connect.StreamingHandlerConn
 	logger *Logger
+	buf    *strings.Builder
 	mu     sync.Mutex
 }
 
@@ -168,22 +182,17 @@ func (s *streamingHandlerConn) Send(msg any) error {
 
 	err := s.StreamingHandlerConn.Send(msg)
 	if err != nil || (msg != nil && s.logger.protoFormatter != nil) {
-		buf := getBuilder()
-		defer putBuilder(buf)
-
+		s.buf.WriteString("[")
+		s.buf.WriteString(time.Now().Format(s.logger.timeFormat))
 		if err != nil {
-			buf.WriteString("[")
-			buf.WriteString(time.Now().Format(s.logger.timeFormat))
-			buf.WriteString("] Send error: ")
-			buf.WriteString(err.Error())
-			buf.WriteByte('\n')
+			s.buf.WriteString("] Send error: ")
+			s.buf.WriteString(err.Error())
 		} else if m, ok := msg.(proto.Message); ok {
-			s.logger.logProtoMessage(buf, "Sent message", m)
+			s.buf.WriteString("] ")
+			s.logger.logProtoMessage(s.buf, "Sent message", m)
 		}
-
-		s.logger.writeLog(buf)
+		s.buf.WriteByte('\n')
 	}
-
 	return err
 }
 
@@ -194,26 +203,20 @@ func (s *streamingHandlerConn) Receive(msg any) error {
 
 	err := s.StreamingHandlerConn.Receive(msg)
 	if err != nil || (msg != nil && s.logger.protoFormatter != nil) {
-		buf := getBuilder()
-		defer putBuilder(buf)
-
+		s.buf.WriteString("[")
+		s.buf.WriteString(time.Now().Format(s.logger.timeFormat))
 		if err != nil {
-			buf.WriteString("[")
-			buf.WriteString(time.Now().Format(s.logger.timeFormat))
-
 			if errors.Is(err, io.EOF) {
-				buf.WriteString("] Stream closed by client\n")
+				s.buf.WriteString("] Stream closed by client")
 			} else {
-				buf.WriteString("] Receive error: ")
-				buf.WriteString(err.Error())
-				buf.WriteByte('\n')
+				s.buf.WriteString("] Receive error: ")
+				s.buf.WriteString(err.Error())
 			}
 		} else if m, ok := msg.(proto.Message); ok {
-			s.logger.logProtoMessage(buf, "Received message", m)
+			s.buf.WriteString("] ")
+			s.logger.logProtoMessage(s.buf, "Received message", m)
 		}
-
-		s.logger.writeLog(buf)
+		s.buf.WriteByte('\n')
 	}
-
 	return err
 }
