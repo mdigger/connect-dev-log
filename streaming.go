@@ -37,7 +37,7 @@ func (s *streamingHandlerConn) Send(msg any) error {
 			s.logger.writeError(buf, err)
 		} else if m, ok := msg.(proto.Message); ok {
 			i := s.sended.Add(1)
-			buf.WriteString("\n  Sent message ")
+			buf.WriteString("\n  * Sent message ")
 			buf.WriteString(strconv.FormatInt(i, 10))
 			buf.WriteByte(':')
 			s.logger.writeProto(buf, m)
@@ -68,13 +68,13 @@ func (s *streamingHandlerConn) Receive(msg any) error {
 
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				buf.WriteString("\n  Receive stream closed by client")
+				buf.WriteString("\n  * Receive stream closed by client")
 			} else {
 				s.logger.writeError(buf, err)
 			}
 		} else if m, ok := msg.(proto.Message); ok {
 			i := s.received.Add(1)
-			buf.WriteString("\n  Received message ")
+			buf.WriteString("\n  * Received message ")
 			buf.WriteString(strconv.FormatInt(i, 10))
 			buf.WriteByte(':')
 			s.logger.writeProto(buf, m)

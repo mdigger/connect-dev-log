@@ -62,6 +62,7 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		buf.WriteString(req.Peer().Protocol)
 		buf.WriteByte(' ')
 		buf.WriteString(req.Peer().Addr)
+		buf.WriteString("\n  * Unary request")
 
 		if l.showHeaders {
 			l.writeHeaders(buf, req.Header(), l.excludeHeaders)
@@ -82,7 +83,7 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 			l.writeProto(buf, msg)
 		}
 
-		buf.WriteString("\n  Completed in: ")
+		buf.WriteString("\n  completed in ")
 		buf.WriteString(stop.String())
 		buf.WriteByte('\n')
 		l.writeOutput(buf)
@@ -106,12 +107,13 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		buf.WriteString(conn.Peer().Protocol)
 		buf.WriteByte(' ')
 		buf.WriteString(conn.Peer().Addr)
+		buf.WriteString("\n  * Start streaming")
 
 		if l.showHeaders {
 			l.writeHeaders(buf, conn.RequestHeader(), l.excludeHeaders)
 		}
 
-		buf.WriteString("\n  Start streaming\n")
+		buf.WriteByte('\n')
 		l.writeOutput(buf)
 		buf.Reset()
 
@@ -131,12 +133,13 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		buf.WriteString(conn.Peer().Protocol)
 		buf.WriteByte(' ')
 		buf.WriteString(conn.Peer().Addr)
+		buf.WriteString("\n  * Stop streaming")
 
 		if err != nil {
 			l.writeError(buf, err)
 		}
 
-		buf.WriteString("\n  Stream completed in ")
+		buf.WriteString("\n  completed in ")
 		buf.WriteString(stop.String())
 		i := wrappedConn.received.Load()
 		buf.WriteString(" (received: ")

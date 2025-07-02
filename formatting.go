@@ -2,7 +2,6 @@ package devlog
 
 import (
 	"bytes"
-	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -39,18 +38,17 @@ func (l *Logger) writeHeaders(w *bytes.Buffer, headers http.Header, exclude map[
 func (l *Logger) writeProto(w *bytes.Buffer, proto proto.Message) {
 	message := l.protoFormatter(proto)
 	for line := range strings.SplitSeq(message, "\n") {
-		if line != "" {
-			w.WriteString("\n    ")
-			w.WriteString(line)
-		} else {
-			slog.Warn("rpc <empty proto line>", slog.String("proto", message))
-		}
+		w.WriteString("\n    ")
+		w.WriteString(line)
 	}
 }
 
+var replacer = strings.NewReplacer("\n", "\n   ")
+
 func (l *Logger) writeError(w *bytes.Buffer, err error) {
 	w.WriteString("\n  Error: ")
-	w.WriteString(err.Error())
+	replacer.WriteString(w, err.Error())
+	// w.WriteString(err.Error())
 
 	// var connectErr *connect.Error
 	// if errors.As(err, &connectErr) {
