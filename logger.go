@@ -53,9 +53,7 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		buf := getBuffer()
 		defer putBuffer(buf)
 
-		if l.timeFormat != "" {
-			writeTimestamp(buf, start.Format(l.timeFormat))
-		}
+		l.writeTimestamp(buf, start)
 
 		buf.WriteString(req.Spec().Procedure)
 		buf.WriteByte(' ')
@@ -66,22 +64,22 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		buf.WriteString(req.Peer().Addr)
 
 		if l.showHeaders {
-			writeHeaders(buf, req.Header(), l.excludeHeaders)
+			l.writeHeaders(buf, req.Header(), l.excludeHeaders)
 		}
 
 		if msg, ok := req.Any().(proto.Message); ok {
 			buf.WriteString("\n  Request:")
-			writeProto(buf, l.protoFormatter(msg))
+			l.writeProto(buf, msg)
 		}
 
 		resp, err := next(ctx, req)
 		stop := time.Since(start)
 
 		if err != nil {
-			writeError(buf, err)
+			l.writeError(buf, err)
 		} else if msg, ok := resp.Any().(proto.Message); ok {
 			buf.WriteString("\n  Response:")
-			writeProto(buf, l.protoFormatter(msg))
+			l.writeProto(buf, msg)
 		}
 
 		buf.WriteString("\n  Completed in: ")
@@ -99,9 +97,7 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		buf := getBuffer()
 		defer putBuffer(buf)
 
-		if l.timeFormat != "" {
-			writeTimestamp(buf, start.Format(l.timeFormat))
-		}
+		l.writeTimestamp(buf, start)
 
 		buf.WriteString(conn.Spec().Procedure)
 		buf.WriteByte(' ')
@@ -112,7 +108,7 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		buf.WriteString(conn.Peer().Addr)
 
 		if l.showHeaders {
-			writeHeaders(buf, conn.RequestHeader(), l.excludeHeaders)
+			l.writeHeaders(buf, conn.RequestHeader(), l.excludeHeaders)
 		}
 
 		buf.WriteString("\n  Start streaming\n")
@@ -128,7 +124,7 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		stop := time.Since(start)
 
 		if err != nil {
-			writeError(buf, err)
+			l.writeError(buf, err)
 		}
 
 		buf.WriteString("  Stream completed in ")

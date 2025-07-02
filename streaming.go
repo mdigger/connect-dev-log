@@ -23,9 +23,7 @@ func (s *streamingHandlerConn) Send(msg any) error {
 		buf := getBuffer()
 		defer putBuffer(buf)
 
-		if s.logger.timeFormat != "" {
-			writeTimestamp(buf, time.Now().Format(s.logger.timeFormat))
-		}
+		s.logger.writeTimestamp(buf, time.Now())
 
 		buf.WriteString(s.Spec().Procedure)
 		buf.WriteByte(' ')
@@ -36,13 +34,13 @@ func (s *streamingHandlerConn) Send(msg any) error {
 		buf.WriteString(s.Peer().Addr)
 
 		if err != nil {
-			writeError(buf, err)
+			s.logger.writeError(buf, err)
 		} else if m, ok := msg.(proto.Message); ok {
 			i := s.sended.Add(1)
 			buf.WriteString("\n  Sent message ")
 			buf.WriteString(strconv.FormatInt(i, 10))
 			buf.WriteByte(':')
-			writeProto(buf, s.logger.protoFormatter(m))
+			s.logger.writeProto(buf, m)
 		}
 
 		buf.WriteByte('\n')
@@ -58,9 +56,7 @@ func (s *streamingHandlerConn) Receive(msg any) error {
 		buf := getBuffer()
 		defer putBuffer(buf)
 
-		if s.logger.timeFormat != "" {
-			writeTimestamp(buf, time.Now().Format(s.logger.timeFormat))
-		}
+		s.logger.writeTimestamp(buf, time.Now())
 
 		buf.WriteString(s.Spec().Procedure)
 		buf.WriteByte(' ')
@@ -74,14 +70,14 @@ func (s *streamingHandlerConn) Receive(msg any) error {
 			if errors.Is(err, io.EOF) {
 				buf.WriteString("\n  Receive stream closed by client")
 			} else {
-				writeError(buf, err)
+				s.logger.writeError(buf, err)
 			}
 		} else if m, ok := msg.(proto.Message); ok {
 			i := s.received.Add(1)
 			buf.WriteString("\n  Received message ")
 			buf.WriteString(strconv.FormatInt(i, 10))
 			buf.WriteByte(':')
-			writeProto(buf, s.logger.protoFormatter(m))
+			s.logger.writeProto(buf, m)
 		}
 
 		buf.WriteByte('\n')
