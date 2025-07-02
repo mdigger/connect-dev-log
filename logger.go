@@ -123,11 +123,20 @@ func (l *Logger) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect
 		err := next(ctx, wrappedConn)
 		stop := time.Since(start)
 
+		l.writeTimestamp(buf, time.Now())
+		buf.WriteString(conn.Spec().Procedure)
+		buf.WriteByte(' ')
+		buf.WriteString(conn.Spec().StreamType.String())
+		buf.WriteByte(' ')
+		buf.WriteString(conn.Peer().Protocol)
+		buf.WriteByte(' ')
+		buf.WriteString(conn.Peer().Addr)
+
 		if err != nil {
 			l.writeError(buf, err)
 		}
 
-		buf.WriteString("  Stream completed in ")
+		buf.WriteString("\n  Stream completed in ")
 		buf.WriteString(stop.String())
 		i := wrappedConn.received.Load()
 		buf.WriteString(" (received: ")
