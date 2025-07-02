@@ -2,7 +2,6 @@ package devlog
 
 import (
 	"bytes"
-	"errors"
 	"log/slog"
 	"maps"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -31,7 +29,7 @@ func (l *Logger) writeHeaders(w *bytes.Buffer, headers http.Header, exclude map[
 		w.WriteString(k)
 		w.WriteString(": ")
 		if exclude[k] {
-			w.WriteString("[** REDACTED **]")
+			w.WriteString("[** redacted **]")
 			continue
 		}
 		w.WriteString(strings.Join(headers.Values(k), ", "))
@@ -45,7 +43,7 @@ func (l *Logger) writeProto(w *bytes.Buffer, proto proto.Message) {
 			w.WriteString("\n    ")
 			w.WriteString(line)
 		} else {
-			slog.Warn("empty proto line")
+			slog.Warn("rpc <empty proto line>", slog.String("proto", message))
 		}
 	}
 }
@@ -54,31 +52,31 @@ func (l *Logger) writeError(w *bytes.Buffer, err error) {
 	w.WriteString("\n  Error: ")
 	w.WriteString(err.Error())
 
-	var connectErr *connect.Error
-	if errors.As(err, &connectErr) {
-		w.WriteString("\n  Code: ")
-		w.WriteString(connectErr.Code().String())
-		w.WriteString("\n  Message: ")
-		w.WriteString(connectErr.Message())
+	// var connectErr *connect.Error
+	// if errors.As(err, &connectErr) {
+	// 	w.WriteString("\n  Code: ")
+	// 	w.WriteString(connectErr.Code().String())
+	// 	w.WriteString("\n  Message: ")
+	// 	w.WriteString(connectErr.Message())
 
-		if meta := connectErr.Meta(); len(meta) > 0 {
-			l.writeHeaders(w, meta, nil)
-		}
+	// 	if meta := connectErr.Meta(); len(meta) > 0 {
+	// 		l.writeHeaders(w, meta, nil)
+	// 	}
 
-		if details := connectErr.Details(); len(details) > 0 {
-			for _, detail := range details {
-				w.WriteString("\n    Type: ")
-				w.WriteString(detail.Type())
-				v, err := detail.Value()
-				if err != nil {
-					slog.Warn("error getting value from detail",
-						slog.String("type", detail.Type()),
-						slog.Any("error", err))
-				} else {
-					w.WriteString("\n    Message: ")
-					l.writeProto(w, v)
-				}
-			}
-		}
-	}
+	// 	if details := connectErr.Details(); len(details) > 0 {
+	// 		for _, detail := range details {
+	// 			w.WriteString("\n    Type: ")
+	// 			w.WriteString(detail.Type())
+	// 			v, err := detail.Value()
+	// 			if err != nil {
+	// 				slog.Warn("error getting value from detail",
+	// 					slog.String("type", detail.Type()),
+	// 					slog.Any("error", err))
+	// 			} else {
+	// 				w.WriteString("\n    Message: ")
+	// 				l.writeProto(w, v)
+	// 			}
+	// 		}
+	// 	}
+	// }
 }
