@@ -35,8 +35,8 @@ func (l *Logger) writeHeaders(w *bytes.Buffer, headers http.Header, exclude map[
 	}
 }
 
-func (l *Logger) writeProto(w *bytes.Buffer, proto proto.Message) {
-	message := l.protoFormatter(proto)
+func (l *Logger) writeProto(w *bytes.Buffer, msg proto.Message) {
+	message := l.protoFormatter(msg)
 	for line := range strings.SplitSeq(message, "\n") {
 		w.WriteString("\n    ")
 		w.WriteString(line)

@@ -69,7 +69,9 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		}
 
 		if msg, ok := req.Any().(proto.Message); ok {
-			buf.WriteString("\n  Request:")
+			buf.WriteString("\n  Request (size: ")
+			buf.WriteString(strconv.Itoa(proto.Size(msg)))
+			buf.WriteString("):")
 			l.writeProto(buf, msg)
 		}
 
@@ -79,7 +81,9 @@ func (l *Logger) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 		if err != nil {
 			l.writeError(buf, err)
 		} else if msg, ok := resp.Any().(proto.Message); ok {
-			buf.WriteString("\n  Response:")
+			buf.WriteString("\n  Response (size: ")
+			buf.WriteString(strconv.Itoa(proto.Size(msg)))
+			buf.WriteString("):")
 			l.writeProto(buf, msg)
 		}
 

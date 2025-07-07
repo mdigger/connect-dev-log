@@ -39,7 +39,9 @@ func (s *streamingHandlerConn) Send(msg any) error {
 			i := s.sended.Add(1)
 			buf.WriteString("\n  * Sent message ")
 			buf.WriteString(strconv.FormatInt(i, 10))
-			buf.WriteByte(':')
+			buf.WriteString(" (size: ")
+			buf.WriteString(strconv.Itoa(proto.Size(m)))
+			buf.WriteString("):")
 			s.logger.writeProto(buf, m)
 		}
 
@@ -76,7 +78,9 @@ func (s *streamingHandlerConn) Receive(msg any) error {
 			i := s.received.Add(1)
 			buf.WriteString("\n  * Received message ")
 			buf.WriteString(strconv.FormatInt(i, 10))
-			buf.WriteByte(':')
+			buf.WriteString(" (size: ")
+			buf.WriteString(strconv.Itoa(proto.Size(m)))
+			buf.WriteString("):")
 			s.logger.writeProto(buf, m)
 		}
 
