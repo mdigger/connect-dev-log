@@ -2,7 +2,7 @@ package devlog
 
 import (
 	"bytes"
-	"log/slog"
+	// "log/slog"
 	"sync"
 )
 
