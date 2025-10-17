@@ -20,7 +20,7 @@ const maxBufferCapacity = 65536
 
 func putBuffer(buf *bytes.Buffer) {
 	if buf.Cap() > maxBufferCapacity {
-		slog.Debug("rpc log buffer capacity overflow", slog.Int("cap", buf.Cap()))
+		// slog.Debug("rpc log buffer capacity overflow", slog.Int("cap", buf.Cap()))
 		return
 	}
 
